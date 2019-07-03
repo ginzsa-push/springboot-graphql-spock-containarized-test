@@ -3,6 +3,10 @@ springboot-graphql-spock-contain-containerized-test
 
 This Spring boot application has a graphql endpoint, jpa starters and includes containarized test and docker executions.
 
+The application will pull data about the repositories created in the last week from the git api search endpoint and save it in a database (Using Spring template, 'simulating' a Kafka connector poll implementation)
+
+The service will pull the top ten repos (order by stars).
+
 
 ## Getting Started
 
@@ -64,6 +68,11 @@ query Item {
 ## Running the tests
 
 ### Test will include containarized execution (not excluded), do you have to have docker running
+
+Test suit includes samples of:
+	- Unit test
+	- Mvc integration test
+	- Containerized integration test
 
 ```
 ./gradlew test
