@@ -15,6 +15,12 @@ Docker compose execution
 docker-compose up --build
 ```
 
+Local execution if you have the local 'test' postgres db running
+
+```
+java -DHOST_DB=localhost -jar ./build/libs/job-1.0-SNAPSHOT.jar
+```
+
 ### Prerequisites
 
 Java 8, Docker and Postgres if you want to exectute it locally
