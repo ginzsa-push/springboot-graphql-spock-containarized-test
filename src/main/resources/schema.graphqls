@@ -1,0 +1,15 @@
+type Item {
+    id: ID !
+    name: String
+    stars: Int
+    datetime: String
+    language: String
+}
+
+type Query {
+    allItems: [Item]
+}
+
+type Query {
+    topTenStars: [Item]
+}
