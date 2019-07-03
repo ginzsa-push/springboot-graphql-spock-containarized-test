@@ -1,0 +1,163 @@
+buildscript {
+
+    dependencies {
+        classpath('com.palantir.gradle.docker:gradle-docker:0.20.1')
+    }
+
+    ext {
+        springBootVersion = '2.1.5.RELEASE'
+        springfoxVersion = '2.9.2'
+        lombokVersion = '1.18.8'
+        flywayVersion = '5.2.4'
+        springCloudAwsVersion = '2.1.1.RELEASE'
+        testContainersVersion = '1.11.3'
+        byteBuddyVersion = '1.8.0'
+        groovyVersion = '2.5.6'
+        spockVersion = '1.3-groovy-2.5'
+        wireMockVersion = '1.57'
+    }
+}
+
+plugins {
+    id 'org.springframework.boot' version '2.1.5.RELEASE'
+    id 'io.spring.dependency-management' version '1.0.7.RELEASE'
+    id 'java'
+    id 'idea'
+    id 'eclipse'
+    id 'groovy'
+    id 'jacoco'
+}
+
+group 'test'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+
+// jacoco configuration nightmare
+jacoco {
+    toolVersion = "0.8.3"
+    reportsDir = file("$buildDir/reports/jacoco")
+}
+
+// Jacoco plugin config
+jacocoTestReport {
+    additionalSourceDirs = files(sourceSets.main.allJava.srcDirs)
+    reports {
+        xml.enabled = false
+        csv.enabled = false
+        html.destination file("${buildDir}/reports/jacoco")
+    }
+    executionData = files("${buildDir}/jacoco/test.exec")
+}
+
+// Jacoco plugin
+test {
+    finalizedBy jacocoTestReport
+
+    useJUnit {
+        excludeCategories 'me.work.test.integration.IntegrationTests'
+    }
+
+    jacoco {
+        append = false
+        destinationFile = file("$buildDir/jacoco/test.exec")
+    }
+
+    testLogging {
+        exceptionFormat = "short"
+        showStackTraces = true
+    }
+}
+
+task integrationTests(type: Test) {
+    finalizedBy jacocoTestReport
+    group test.group
+
+    useJUnit {
+        includeCategories 'me.work.test.integration.IntegrationTests'
+    }
+
+
+    jacoco {
+        append = false
+        destinationFile = file("$buildDir/jacoco/test.exec")
+    }
+
+    testLogging {
+        exceptionFormat = "short"
+        showStackTraces = true
+    }
+}
+
+task allTests(type: Test) {
+    finalizedBy jacocoTestReport
+    group test.group
+
+    jacoco {
+        append = false
+        destinationFile = file("$buildDir/jacoco/test.exec")
+    }
+
+    testLogging {
+        exceptionFormat = "short"
+        showStackTraces = true
+    }
+}
+
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-integration'
+    implementation "org.flywaydb:flyway-core:${flywayVersion}"
+    
+    implementation 'com.graphql-java:graphql-spring-boot-starter:5.0.2'
+    implementation 'com.graphql-java:graphiql-spring-boot-starter:5.0.2'
+    implementation 'com.graphql-java:graphql-java-tools:5.2.4'
+    implementation 'org.postgresql:postgresql:42.2.5'
+    implementation 'com.zaxxer:HikariCP:3.3.1'
+    implementation 'com.google.code.gson:gson:2.8.5'
+    implementation 'io.leangen.graphql:spqr:0.10.0'
+
+    compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'com.graphql-java:graphql-spring-boot-starter-test:5.0.2'
+
+    testImplementation "org.flywaydb.flyway-test-extensions:flyway-spring-test:5.0.0"
+
+    testImplementation "org.testcontainers:localstack:${testContainersVersion}"
+    testImplementation "org.testcontainers:testcontainers:${testContainersVersion}"
+    testImplementation "org.testcontainers:postgresql:${testContainersVersion}"
+    testImplementation "org.testcontainers:spock:${testContainersVersion}"
+
+    testImplementation "net.bytebuddy:byte-buddy:${byteBuddyVersion}"
+    testImplementation "org.codehaus.groovy:groovy-all:${groovyVersion}"
+    testImplementation "org.spockframework:spock-spring:${spockVersion}"
+    testImplementation "org.spockframework:spock-core:${spockVersion}"
+
+    testImplementation "com.github.tomakehurst:wiremock:${wireMockVersion}"
+    testImplementation "com.github.tomjankes:wiremock-groovy:0.2.0"
+}
+
+apply plugin: 'com.palantir.docker'
+
+task unpack(type: Copy) {
+    dependsOn bootJar
+    from(zipTree(tasks.bootJar.outputs.files.singleFile))
+    into("build/dependency")
+}
+
+docker {
+    name "${project.group}/${bootJar.baseName}"
+    copySpec.from(tasks.unpack.outputs).into("dependency")
+    buildArgs(['DEPENDENCY': "dependency"])
+}
